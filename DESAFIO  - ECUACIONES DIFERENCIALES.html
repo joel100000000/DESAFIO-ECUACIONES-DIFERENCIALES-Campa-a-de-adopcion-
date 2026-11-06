@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Campaña de adopción de mascotas · Heun y RK4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF3F7;--card:#FFFFFF;--ink:#17233B;--mute:#5B6880;--line:#D5DDE6;--exact:#17233B;--heun:#D9701A;--rk4:#0E8F7E;--bad:#B3261E;--accent:#0E8F7E;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0F1726;--card:#18233A;--ink:#E7EDF7;--mute:#9AA8C0;--line:#2B3A57;--exact:#E7EDF7;--heun:#F29A4B;--rk4:#3CC9B5;--bad:#FF8A80}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0F1726;--card:#18233A;--ink:#E7EDF7;--mute:#9AA8C0;--line:#2B3A57;--exact:#E7EDF7;--heun:#F29A4B;--rk4:#3CC9B5;--bad:#FF8A80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Figtree,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.55}
+main{max-width:980px;margin:0 auto;padding:28px 18px 56px}
+h1{font-size:clamp(1.9rem,5vw,3rem);line-height:1.1;font-weight:800;margin:0 0 10px;letter-spacing:-.02em}
+h2{font-size:1.25rem;margin:0 0 10px}
+p{margin:0 0 10px;max-width:72ch}
+.lead{font-size:1.1rem;color:var(--mute)}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-top:18px}
+.eq{font-family:"Cambria Math",Georgia,serif;font-size:1.12rem;background:var(--bg);border-radius:8px;padding:10px 14px;margin:8px 0;overflow-x:auto;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+label{display:block;font-weight:600;font-size:.92rem}
+label small{display:block;font-weight:400;color:var(--mute)}
+input{width:100%;margin-top:4px;padding:9px 10px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button{margin-top:16px;padding:11px 22px;font:inherit;font-weight:700;color:#fff;background:var(--accent);border:0;border-radius:8px;cursor:pointer}
+#err{color:var(--bad);font-weight:600;margin-top:12px}
+#err ul{margin:4px 0 0;padding-left:20px}
+.leg{display:flex;flex-wrap:wrap;gap:16px;font-size:.9rem;margin:6px 0}
+.leg i{display:inline-block;width:22px;height:0;border-top:3px solid;vertical-align:middle;margin-right:6px}
+svg{width:100%;height:auto;display:block}
+.sc{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{position:sticky;top:0;background:var(--card)}
+th:first-child,td:first-child{text-align:left}
+.tw{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.note{color:var(--mute);font-size:.9rem}
+.win{color:var(--rk4);font-weight:700}
+#interp{border-left:4px solid var(--accent);padding-left:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>Campaña de adopción de mascotas rescatadas</h1>
+<p class="lead">¿En cuántas semanas logra un refugio que el 90 % de sus mascotas esté adoptado? Un modelo de primer orden lo responde y dos métodos numéricos lo aproximan.</p>
+
+<section>
+<h2>Problema y modelo</h2>
+<p><b>Comunidad beneficiaria:</b> animales rescatados de un refugio municipal y las familias que pueden adoptarlos. <b>Meta cuantificable:</b> llegar al 90 % de mascotas adoptadas. Los parámetros son <b>hipotéticos</b>; el resultado es una simulación, no una predicción comprobada con datos reales.</p>
+<p><b>Variables:</b> t = tiempo (semanas, variable independiente); y(t) = mascotas adoptadas acumuladas (mascotas, variable dependiente). <b>Parámetros:</b> M = mascotas disponibles en total (mascotas); k = tasa de adopción (1/semana); y₀ = adoptadas al inicio (mascotas).</p>
+<p><b>Supuesto:</b> el ritmo de adopción es proporcional a las mascotas que aún esperan, M − y. Al principio hay muchas y se adopta rápido; luego el ritmo baja. No entran mascotas nuevas durante la campaña.</p>
+<div class="eq">dy/dt = k·(M − y),&nbsp;&nbsp; y(0) = y₀</div>
+<p><b>Solución analítica</b> (separación de variables): dy/(M − y) = k dt ⇒ −ln|M − y| = kt + C ⇒ M − y = C·e<sup>−kt</sup>, y con y(0) = y₀ resulta C = M − y₀.</p>
+<div class="eq">y(t) = M − (M − y₀)·e<sup>−kt</sup></div>
+<p><b>Verificación por sustitución:</b> y′(t) = k(M − y₀)e<sup>−kt</sup>. Además, M − y(t) = (M − y₀)e<sup>−kt</sup>, así que k(M − y) = k(M − y₀)e<sup>−kt</sup> = y′(t) ✓. Y y(0) = M − (M − y₀) = y₀ ✓.</p>
+<p><b>Tiempo para el 90 %</b> (de y(t*) = 0,9M):</p>
+<div class="eq">t* = (1/k)·ln[(M − y₀)/(0,1·M)]</div>
+<p class="note">Heun: yₙ₊₁ = yₙ + (h/2)(k₁ + k₂), con k₁ = f(tₙ, yₙ) y k₂ = f(tₙ + h, yₙ + h·k₁). RK4: yₙ₊₁ = yₙ + (h/6)(k₁ + 2k₂ + 2k₃ + k₄), con k₂ y k₃ evaluados en el punto medio y k₄ en el extremo derecho.</p>
+</section>
+
+<section>
+<h2>Simulación</h2>
+<div class="grid">
+<label>M — mascotas disponibles<small>mascotas</small><input id="M" type="number" value="120" step="any"></label>
+<label>k — tasa de adopción<small>1/semana</small><input id="k" type="number" value="0.15" step="any"></label>
+<label>y₀ — adoptadas al inicio<small>mascotas</small><input id="y0" type="number" value="10" step="any"></label>
+<label>h — tamaño de paso<small>semanas</small><input id="h" type="number" value="1" step="any"></label>
+<label>T — tiempo de simulación<small>semanas</small><input id="T" type="number" value="30" step="any"></label>
+</div>
+<button id="go" type="button">Ejecutar Heun y RK4</button>
+<div id="err" role="alert"></div>
+</section>
+
+<div id="out" hidden>
+<section>
+<h2>Gráfica: solución analítica, Heun y RK4</h2>
+<div class="leg"><span><i style="border-color:var(--exact);border-top-style:dashed"></i>Analítica</span><span><i style="border-color:var(--heun)"></i>Heun</span><span><i style="border-color:var(--rk4)"></i>RK4</span></div>
+<div class="sc"><div id="c1"></div></div>
+<p class="note">Eje horizontal: semanas. Eje vertical: mascotas adoptadas.</p>
+</section>
+
+<section>
+<h2>Errores</h2>
+<div class="leg"><span><i style="border-color:var(--heun)"></i>Heun</span><span><i style="border-color:var(--rk4)"></i>RK4</span></div>
+<div class="sc"><div id="c2"></div></div>
+<p class="note">Error absoluto |y exacta − y aproximada| en escala logarítmica (mascotas). Se omiten los puntos con error cero, como t = 0.</p>
+<div class="tw" style="margin-top:12px"><table id="cmp"></table></div>
+<p class="note" id="cmpn"></p>
+</section>
+
+<section>
+<h2>Tabla por pasos</h2>
+<div class="tw"><table id="tab"></table></div>
+<p class="note">El error relativo porcentual es |error| / |y exacta| · 100.</p>
+</section>
+
+<section>
+<h2>Interpretación</h2>
+<div id="interp"></div>
+</section>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=(v,d=4)=>Number.isFinite(v)?(v!==0&&Math.abs(v)<1e-3?v.toExponential(2):v.toFixed(d)):"—";
+function sim(P,h,n){
+  const f=(t,y)=>P.k*(P.M-y);
+  const H=[P.y0],R=[P.y0];
+  for(let i=0;i<n;i++){
+    const t=i*h;
+    let y=H[i],a=f(t,y),b=f(t+h,y+h*a);
+    H.push(y+h/2*(a+b));
+    y=R[i];
+    const k1=f(t,y),k2=f(t+h/2,y+h/2*k1),k3=f(t+h/2,y+h/2*k2),k4=f(t+h,y+h*k3);
+    R.push(y+h/6*(k1+2*k2+2*k3+k4));
+  }
+  return{H,R};
+}
+function chart(series,log,w=640,ht=300){
+  const L=56,Rr=14,Tp=12,B=36;
+  let xs=[],ys=[];
+  series.forEach(s=>s.pts.forEach(p=>{xs.push(p[0]);ys.push(log?Math.log10(p[1]):p[1]);}));
+  if(!xs.length)return"<p class='note'>Sin datos para graficar.</p>";
+  let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  if(log){y0=Math.floor(y0);y1=Math.ceil(y1);if(y0===y1)y1++;}
+  else{const pad=(y1-y0||1)*.05;y0=Math.min(y0,0);y1+=pad;}
+  const X=x=>L+(x-x0)/((x1-x0)||1)*(w-L-Rr),Y=y=>Tp+(1-(y-y0)/((y1-y0)||1))*(ht-Tp-B);
+  let g="";
+  for(let i=0;i<=5;i++){
+    const v=y0+(y1-y0)*i/5,yy=Y(v);
+    g+=`<line x1="${L}" x2="${w-Rr}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--mute)">${log?"1e"+Math.round(v):fmt(v,v>=10?0:1)}</text>`;
+    const xv=x0+(x1-x0)*i/5;
+    g+=`<text x="${X(xv)}" y="${ht-14}" text-anchor="middle" font-size="11" fill="var(--mute)">${fmt(xv,xv%1?1:0)}</text>`;
+  }
+  g+=`<text x="${(L+w-Rr)/2}" y="${ht-1}" text-anchor="middle" font-size="11" fill="var(--mute)">t (semanas)</text>`;
+  series.forEach(s=>{
+    const d=s.pts.map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+" "+Y(log?Math.log10(p[1]):p[1]).toFixed(1)).join("");
+    g+=`<path d="${d}" fill="none" stroke="${s.c}" stroke-width="2.5"${s.dash?' stroke-dasharray="7 5"':""}/>`;
+    if(s.dots&&s.pts.length<=61)s.pts.forEach(p=>g+=`<circle cx="${X(p[0])}" cy="${Y(log?Math.log10(p[1]):p[1])}" r="3" fill="${s.c}"/>`);
+  });
+  return`<svg viewBox="0 0 ${w} ${ht}" role="img" aria-label="Gráfica">${g}</svg>`;
+}
+function run(){
+  const P={M:+$("M").value,k:+$("k").value,y0:+$("y0").value,h:+$("h").value,T:+$("T").value};
+  const e=[];
+  for(const key of["M","k","y0","h","T"])if($(key).value===""||!Number.isFinite(P[key]))e.push("Completa "+key+" con un número.");
+  if(!e.length){
+    if(P.M<=0)e.push("M debe ser mayor que 0 (mascotas).");
+    if(P.k<=0)e.push("k debe ser mayor que 0 (1/semana).");
+    if(P.y0<0||P.y0>=P.M)e.push("y₀ debe cumplir 0 ≤ y₀ < M (mascotas).");
+    if(P.h<=0)e.push("h debe ser mayor que 0 (semanas).");
+    if(P.T<=0)e.push("T debe ser mayor que 0 (semanas).");
+    if(!e.length){
+      if(P.h>P.T)e.push("h no puede ser mayor que T.");
+      else{
+        const q=P.T/P.h;
+        if(Math.abs(q-Math.round(q))>1e-9)e.push("T debe ser múltiplo de h para que los pasos lleguen exactamente a T.");
+        else if(Math.round(q)>1000)e.push("Hay demasiados pasos (máximo 1000). Aumenta h o reduce T.");
+        else if(P.k*P.h>=2)e.push("k·h debe ser menor que 2 para que Heun sea estable. Reduce h.");
+      }
+    }
+  }
+  $("err").innerHTML=e.length?"Revisa los datos:<ul>"+e.map(x=>"<li>"+x+"</li>").join("")+"</ul>":"";
+  if(e.length){$("out").hidden=true;return;}
+  const n=Math.round(P.T/P.h),ex=t=>P.M-(P.M-P.y0)*Math.exp(-P.k*t);
+  const {H,R}=sim(P,P.h,n);
+  // gráfica 1
+  const fine=[];for(let i=0;i<=200;i++){const t=P.T*i/200;fine.push([t,ex(t)]);}
+  const tt=i=>i*P.h;
+  $("c1").innerHTML=chart([
+    {pts:fine,c:"var(--exact)",dash:true},
+    {pts:H.map((y,i)=>[tt(i),y]),c:"var(--heun)",dots:true},
+    {pts:R.map((y,i)=>[tt(i),y]),c:"var(--rk4)",dots:true}],false);
+  // errores
+  const eH=H.map((y,i)=>Math.abs(ex(tt(i))-y)),eR=R.map((y,i)=>Math.abs(ex(tt(i))-y));
+  const pos=a=>a.map((v,i)=>[tt(i),v]).filter(p=>p[1]>1e-15);
+  $("c2").innerHTML=chart([{pts:pos(eH),c:"var(--heun)",dots:true},{pts:pos(eR),c:"var(--rk4)",dots:true}],true);
+  // tabla por pasos
+  let rows="<tr><th>Paso</th><th>t</th><th>Exacta</th><th>Heun</th><th>|Err| Heun</th><th>Err % Heun</th><th>RK4</th><th>|Err| RK4</th><th>Err % RK4</th></tr>";
+  for(let i=0;i<=n;i++){
+    const x=ex(tt(i)),rel=v=>x!==0?fmt(v/Math.abs(x)*100,5)+" %":"—";
+    rows+=`<tr><td>${i}</td><td>${fmt(tt(i),2)}</td><td>${fmt(x,5)}</td><td>${fmt(H[i],5)}</td><td>${fmt(eH[i],6)}</td><td>${rel(eH[i])}</td><td>${fmt(R[i],5)}</td><td>${fmt(eR[i],6)}</td><td>${rel(eR[i])}</td></tr>`;
+  }
+  $("tab").innerHTML=rows;
+  // comparación de pasos
+  const hs=[P.h*2,P.h,P.h/2].filter(h=>h<=P.T&&Math.abs(P.T/h-Math.round(P.T/h))<1e-9&&Math.round(P.T/h)<=2000);
+  let c="<tr><th>h (semanas)</th><th>Pasos</th><th>Error máx. Heun</th><th>Error máx. RK4</th><th>Error final Heun (%)</th><th>Error final RK4 (%)</th></tr>",maxes=[];
+  hs.forEach(h=>{
+    const m=Math.round(P.T/h),r=sim(P,h,m);
+    let mh=0,mr=0;
+    for(let i=0;i<=m;i++){mh=Math.max(mh,Math.abs(ex(i*h)-r.H[i]));mr=Math.max(mr,Math.abs(ex(i*h)-r.R[i]));}
+    const xf=ex(P.T);
+    maxes.push([h,mh,mr]);
+    c+=`<tr><td>${fmt(h,3)}</td><td>${m}</td><td>${fmt(mh,8)}</td><td>${fmt(mr,10)}</td><td>${fmt(Math.abs(xf-r.H[m])/xf*100,6)}</td><td>${fmt(Math.abs(xf-r.R[m])/xf*100,8)}</td></tr>`;
+  });
+  $("cmp").innerHTML=c;
+  $("cmpn").textContent="Al reducir h a la mitad, el error de Heun baja unas 4 veces (orden 2) y el de RK4 unas 16 veces (orden 4).";
+  // interpretación
+  const ts=P.y0<0.9*P.M?Math.log((P.M-P.y0)/(0.1*P.M))/P.k:0;
+  const mh=Math.max(...eH),mr=Math.max(...eR);
+  const best=mr<mh?"<span class='win'>RK4</span>":"Heun";
+  const meta=0.9*P.M;
+  let txt=`<p>Con M = ${P.M} mascotas, k = ${P.k} por semana y y₀ = ${P.y0} adoptadas al inicio, la solución exacta indica que la campaña alcanza la meta del 90 % (${fmt(meta,1)} mascotas) en t* ≈ <b>${fmt(ts,2)} semanas</b>.`;
+  txt+=P.T>=ts?` Esto cae dentro de las ${P.T} semanas simuladas.`:` Esto queda fuera de las ${P.T} semanas simuladas: aumenta T para verlo.`;
+  txt+=` Al cabo de ${P.T} semanas habría unas ${fmt(ex(P.T),1)} mascotas adoptadas.</p>`;
+  txt+=`<p>En esta simulación, con h = ${P.h} semanas, el error máximo de Heun fue ${fmt(mh,6)} mascotas y el de RK4 fue ${fmt(mr,8)} mascotas. El método con menor error fue ${best}. Ambos son precisos para decidir cuántas semanas dura la campaña, porque la diferencia es una fracción diminuta de una mascota.</p>`;
+  txt+=`<p class="note">Limitaciones: los parámetros son hipotéticos; el modelo supone que no ingresan mascotas nuevas y que la tasa k es constante, algo que en la realidad cambia con la difusión de la campaña, la época del año y el perfil de cada animal. Es una simulación, no una predicción comprobada con datos reales.</p>`;
+  $("interp").innerHTML=txt;
+  $("out").hidden=false;
+}
+$("go").addEventListener("click",run);
+document.querySelectorAll("input").forEach(i=>i.addEventListener("keydown",e=>{if(e.key==="Enter")run();}));
+run();
+</script>
+</body>
+</html>
